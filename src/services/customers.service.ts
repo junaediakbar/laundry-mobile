@@ -19,3 +19,33 @@ export function fetchCustomerRecentOrders(id: string, limit = 10) {
     `/api/v1/customers/${id}/orders?limit=${encodeURIComponent(String(limit))}`,
   );
 }
+
+export type CreateCustomerPayload = {
+  name: string;
+  phone?: string | null;
+  address?: string | null;
+  email?: string | null;
+  notes?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+};
+
+export function createCustomer(payload: CreateCustomerPayload) {
+  return apiFetch<Customer>('/api/v1/customers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: payload.name,
+      phone: payload.phone ?? undefined,
+      address: payload.address ?? undefined,
+      email: payload.email ?? undefined,
+      notes: payload.notes ?? undefined,
+      latitude: payload.latitude ?? undefined,
+      longitude: payload.longitude ?? undefined,
+    }),
+  });
+}
+
+export function deleteCustomer(id: string) {
+  return apiFetch<{ ok: boolean }>(`/api/v1/customers/${id}`, { method: 'DELETE' });
+}

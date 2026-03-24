@@ -1,8 +1,9 @@
+/** Auth `/me` may only return id, email, role; list users returns full rows. */
 export type User = {
   id: string;
-  name?: string;
   email: string;
   role: string;
+  name?: string;
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -43,6 +44,21 @@ export type ServiceType = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+export type Employee = {
+  id: string;
+  name: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DeliveryPlanListItem = {
+  id: string;
+  name: string;
+  plannedDate: string;
+  stopCount: number;
 };
 
 export type OrderListItem = {

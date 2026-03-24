@@ -21,6 +21,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { qk } from '@/lib/query-keys';
 import {
   createPayment,
+  deleteOrder,
   fetchOrderDetail,
   updateWorkflow,
 } from '@/services/orders.service';
@@ -71,6 +72,34 @@ export default function OrderDetailScreen() {
       void queryClient.invalidateQueries({ queryKey: ['orders'] });
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteOrder(orderId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['orders'] });
+      router.replace('/(app)/(tabs)/orders');
+    },
+    onError: (e) => {
+      const msg =
+        e instanceof ApiClientError ? e.message : 'Gagal menghapus nota';
+      Alert.alert('Gagal', msg);
+    },
+  });
+
+  const confirmDeleteOrder = () => {
+    Alert.alert(
+      'Hapus nota?',
+      'Semua item, pembayaran, dan lampiran terkait akan ikut terhapus. Tindakan ini tidak dapat dibatalkan.',
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Hapus',
+          style: 'destructive',
+          onPress: () => deleteMutation.mutate(),
+        },
+      ],
+    );
+  };
 
   const payMutation = useMutation({
     mutationFn: () =>
@@ -255,6 +284,20 @@ export default function OrderDetailScreen() {
               <Text style={[textVariants.bodyMuted, styles.note]}>{query.data.note}</Text>
             </>
           ) : null}
+
+          <Text style={styles.section}>Bahaya</Text>
+          <Pressable
+            onPress={confirmDeleteOrder}
+            disabled={deleteMutation.isPending}
+            style={({ pressed }) => [
+              styles.deleteBtn,
+              pressed && { opacity: 0.85 },
+              deleteMutation.isPending && { opacity: 0.5 },
+            ]}>
+            <Text style={styles.deleteBtnText}>
+              {deleteMutation.isPending ? 'Menghapus…' : 'Hapus nota permanen'}
+            </Text>
+          </Pressable>
         </ScrollView>
       ) : null}
     </View>
@@ -349,4 +392,19 @@ const styles = StyleSheet.create({
     marginBottom: theme.space.sm,
   },
   note: { backgroundColor: theme.color.surface, padding: theme.space.md, borderRadius: theme.radius.md },
+  deleteBtn: {
+    marginTop: theme.space.sm,
+    paddingVertical: theme.space.md,
+    paddingHorizontal: theme.space.md,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.color.error,
+    backgroundColor: theme.color.errorMuted,
+    alignItems: 'center',
+  },
+  deleteBtnText: {
+    fontSize: theme.font.sm,
+    fontWeight: theme.fontWeight.semibold,
+    color: theme.color.error,
+  },
 });

@@ -1,7 +1,8 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 
 import { AppHeader } from '@/components/ui/AppHeader';
 import { CustomerCard } from '@/components/ui/CustomerCard';
@@ -35,7 +36,18 @@ export default function CustomersTabScreen() {
 
   return (
     <View style={styles.flex}>
-      <AppHeader title="Pelanggan" subtitle="Cari & kelola data" />
+      <AppHeader
+        title="Pelanggan"
+        subtitle="Cari & kelola data"
+        right={
+          <Pressable
+            onPress={() => router.push('/(app)/customers/new')}
+            hitSlop={12}
+            accessibilityLabel="Tambah pelanggan">
+            <Ionicons name="add-circle-outline" size={28} color={theme.color.primary} />
+          </Pressable>
+        }
+      />
       <View style={styles.searchWrap}>
         <SearchInput value={q} onChangeText={setQ} placeholder="Nama atau telepon" />
       </View>

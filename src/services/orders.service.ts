@@ -1,6 +1,6 @@
 import type { OrderDetail, OrderListItem, Paged, Payment } from '@/types/models';
 
-import { apiFetch } from './api-client';
+import { apiFetch, apiPostMultipart } from './api-client';
 
 export type OrderListParams = {
   q?: string;
@@ -59,6 +59,52 @@ export function createOrder(body: CreateOrderBody) {
   });
 }
 
+export type CreateOrderMultipartPayload = CreateOrderBody & {
+  /** Local file URI from image picker (expo) */
+  imageUri?: string | null;
+  imageName?: string | null;
+  mimeType?: string | null;
+};
+
+/**
+ * Same as web `createOrderAction` with multipart: fields + image optional.
+ * Backend accepts multipart with form fields + `items` JSON string.
+ */
+export async function createOrderWithOptionalImage(
+  payload: CreateOrderMultipartPayload,
+): Promise<OrderDetail> {
+  const { imageUri, imageName, mimeType, ...rest } = payload;
+
+  if (!imageUri) {
+    return createOrder(rest);
+  }
+
+  const form = new FormData();
+  form.append('customerId', rest.customerId);
+  if (rest.receivedDate) form.append('receivedDate', rest.receivedDate);
+  if (rest.completedDate) form.append('completedDate', rest.completedDate);
+  if (rest.note) form.append('note', rest.note);
+  form.append(
+    'items',
+    JSON.stringify(
+      rest.items.map((i) => ({
+        serviceTypeId: i.serviceTypeId,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+        discount: i.discount ?? 0,
+      })),
+    ),
+  );
+
+  // React Native: file object with uri (not Blob)
+  form.append(
+    'image',
+    { uri: imageUri, name: imageName ?? 'nota.jpg', type: mimeType ?? 'image/jpeg' } as unknown as Blob,
+  );
+
+  return apiPostMultipart<OrderDetail>('/api/v1/orders', form);
+}
+
 export function updateWorkflow(orderId: string, workflowStatus: string) {
   return apiFetch<{ ok: boolean }>(`/api/v1/orders/${orderId}/workflow`, {
     method: 'PATCH',
@@ -80,4 +126,8 @@ export function createPayment(
       note: payload.note ?? undefined,
     }),
   });
+}
+
+export function deleteOrder(id: string) {
+  return apiFetch<{ ok: boolean }>(`/api/v1/orders/${id}`, { method: 'DELETE' });
 }

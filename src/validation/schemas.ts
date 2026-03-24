@@ -7,9 +7,11 @@ export const loginSchema = z.object({
 
 const orderLineSchema = z.object({
   serviceTypeId: z.string().min(1, 'Layanan wajib'),
-  quantity: z.number().positive('Qty harus > 0'),
+  quantity: z.number().nonnegative(),
   unitPrice: z.number().nonnegative(),
   discount: z.number().nonnegative(),
+  length: z.number().optional(),
+  width: z.number().optional(),
 });
 
 export const createOrderSchema = z.object({

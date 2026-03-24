@@ -7,4 +7,7 @@ export const qk = {
   customer: (id: string) => ['customers', id] as const,
   customerOrders: (id: string) => ['customers', id, 'orders'] as const,
   serviceTypes: ['service-types'] as const,
+  employees: ['employees'] as const,
+  deliveryPlans: ['delivery-plans'] as const,
+  users: ['users'] as const,
 };

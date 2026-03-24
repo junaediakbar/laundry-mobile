@@ -98,6 +98,30 @@ Pastikan backend dikonfigurasi dengan `AUTH_MODE=jwt` dan `JWT_SECRET` sesuai do
 | `src/theme/` | Token desain & warna |
 | `src/validation/` | Skema Zod |
 
+## Navigasi (selaras panel web)
+
+**Tab bawah:** Beranda · Nota · Pelanggan · **Menu** · Profil.
+
+Tab **Menu** berisi pintasan ke modul yang di web ada di sidebar: **Jenis layanan**, **Perencanaan pengiriman**, **Karyawan**, **Laporan**, **Pengguna** (daftar pengguna butuh peran admin/owner; jika 403, pesan ditampilkan).
+
+**Ikon:** [@tabler/icons-react-native](https://tabler.io/icons) (outline, konsisten dengan ekosistem Tabler) + **react-native-svg**. Gunakan prop **`strokeWidth`**, bukan `stroke`, agar sesuai tipe komponen SVG.
+
+## Tambah nota (alur sama seperti web)
+
+Alur mengikuti halaman **Tambah Nota** di web (`/orders/new`):
+
+1. **Pelanggan** — pencarian + daftar (hingga 200 data awal, seperti web); pelanggan pertama dipilih otomatis jika ada (sama seperti default di web).
+2. **Tanggal masuk / tanggal selesai** — opsional selesai; format ke API `YYYY-MM-DD`.
+3. **Item** — beberapa baris; **satuan m²** → panjang & lebar, qty = p × l; **m1** → panjang mengisi qty; selain itu qty manual; harga default dari jenis layanan; diskon; subtotal per baris + **total nota**.
+4. **Gambar nota (opsional)** — galeri; jika ada gambar, request memakai **multipart/form-data** seperti web (field `items` berisi JSON string).
+5. **Catatan** — opsional.
+
+Paket terkait: `@react-native-community/datetimepicker`, `expo-image-picker` (izin galeri di `app.json` plugins).
+
+## Orientasi layar
+
+`app.json` memakai `"orientation": "default"` agar portrait dan landscape didukung (tablet / ponsel memutar).
+
 ## Pemecahan masalah
 
 ### Expo Go: “Unsupported SDK” / versi tidak cocok

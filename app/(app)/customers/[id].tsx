@@ -1,19 +1,33 @@
-import { useQuery } from '@tanstack/react-query';
+import { Ionicons } from '@expo/vector-icons';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { AppHeader } from '@/components/ui/AppHeader';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { qk } from '@/lib/query-keys';
-import { fetchCustomer, fetchCustomerRecentOrders } from '@/services/customers.service';
+import {
+  deleteCustomer,
+  fetchCustomer,
+  fetchCustomerRecentOrders,
+} from '@/services/customers.service';
 import { ApiClientError } from '@/types/api';
 import { theme, textVariants } from '@/theme';
 import { formatCurrencyIdr } from '@/utils/currency';
 
 export default function CustomerDetailScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { id } = useLocalSearchParams<{ id: string }>();
   const customerId = id ?? '';
 
@@ -29,6 +43,34 @@ export default function CustomerDetailScreen() {
     enabled: !!customerId,
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteCustomer(customerId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['customers'] });
+      router.replace('/(app)/(tabs)/customers');
+    },
+    onError: (e) => {
+      const msg =
+        e instanceof ApiClientError ? e.message : 'Gagal menghapus pelanggan';
+      Alert.alert('Tidak bisa menghapus', msg);
+    },
+  });
+
+  const confirmDelete = () => {
+    Alert.alert(
+      'Hapus pelanggan?',
+      'Pelanggan dengan nota atau yang ada di rute pengiriman tidak bisa dihapus.',
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Hapus',
+          style: 'destructive',
+          onPress: () => deleteMutation.mutate(),
+        },
+      ],
+    );
+  };
+
   if (!customerId) {
     return (
       <View style={styles.flex}>
@@ -40,7 +82,23 @@ export default function CustomerDetailScreen() {
 
   return (
     <View style={styles.flex}>
-      <AppHeader title="Detail pelanggan" onBack={() => router.back()} />
+        <AppHeader
+          title="Detail pelanggan"
+          onBack={() => router.back()}
+          right={
+            <Pressable
+              onPress={confirmDelete}
+              disabled={deleteMutation.isPending}
+              hitSlop={12}
+              accessibilityLabel="Hapus pelanggan">
+              <Ionicons
+                name="trash-outline"
+                size={24}
+                color={deleteMutation.isPending ? theme.color.textMuted : theme.color.error}
+              />
+            </Pressable>
+          }
+        />
       {customerQuery.isLoading ? (
         <LoadingState />
       ) : customerQuery.isError ? (

@@ -5,24 +5,7 @@ import { getStoredToken } from './auth-storage';
 
 type FetchOptions = RequestInit & { skipAuth?: boolean };
 
-export async function apiFetch<T>(path: string, init?: FetchOptions): Promise<T> {
-  const url = `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
-  const headers: Record<string, string> = {
-    Accept: 'application/json',
-    ...((init?.headers as Record<string, string>) ?? {}),
-  };
-
-  if (!init?.skipAuth) {
-    const token = await getStoredToken();
-    if (token) headers.Authorization = `Bearer ${token}`;
-  }
-
-  const res = await fetch(url, {
-    ...init,
-    headers,
-  });
-
-  const text = await res.text();
+function parseResponse<T>(res: Response, text: string): T {
   let parsed: unknown = null;
   if (text) {
     try {
@@ -60,4 +43,44 @@ export async function apiFetch<T>(path: string, init?: FetchOptions): Promise<T>
   const code = wrapped && wrapped.ok === false ? wrapped.error?.code : undefined;
   const details = wrapped && wrapped.ok === false ? wrapped.error?.details : undefined;
   throw new ApiClientError(res.status, message, code, details);
+}
+
+export async function apiFetch<T>(path: string, init?: FetchOptions): Promise<T> {
+  const url = `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    ...((init?.headers as Record<string, string>) ?? {}),
+  };
+
+  if (!init?.skipAuth) {
+    const token = await getStoredToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
+
+  const res = await fetch(url, {
+    ...init,
+    headers,
+  });
+
+  const text = await res.text().catch(() => '');
+  return parseResponse<T>(res, text);
+}
+
+/** Multipart POST (e.g. create order + image). Do not set Content-Type — boundary is set by fetch. */
+export async function apiPostMultipart<T>(path: string, formData: FormData): Promise<T> {
+  const url = `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+  };
+  const token = await getStoredToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  const text = await res.text().catch(() => '');
+  return parseResponse<T>(res, text);
 }
