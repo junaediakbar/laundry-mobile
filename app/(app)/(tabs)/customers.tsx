@@ -91,6 +91,6 @@ export default function CustomersTabScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: theme.color.bg },
-  searchWrap: { paddingHorizontal: theme.space.md, marginBottom: theme.space.sm },
+  searchWrap: { paddingHorizontal: theme.space.md, marginBottom: theme.space.sm, paddingTop: theme.space.md },
   list: { paddingHorizontal: theme.space.md, paddingBottom: theme.space.xxxl },
 });

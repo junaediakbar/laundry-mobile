@@ -28,7 +28,7 @@ import {
 import { ApiClientError } from '@/types/api';
 import { theme, textVariants } from '@/theme';
 import { formatCurrencyIdr, sumMoney } from '@/utils/currency';
-import { formatDateShort } from '@/utils/format-date';
+import { formatDateShort, formatDateTimeShort } from '@/utils/format-date';
 import { workflowLabel } from '@/utils/order-status';
 
 const WORKFLOWS = [
@@ -113,6 +113,11 @@ export default function OrderDetailScreen() {
       setPayNote('');
       void queryClient.invalidateQueries({ queryKey: qk.order(orderId) });
       void queryClient.invalidateQueries({ queryKey: ['orders'] });
+    },
+    onError: (e) => {
+      const msg =
+        e instanceof ApiClientError ? e.message : 'Gagal menyimpan pembayaran';
+      Alert.alert('Gagal', msg);
     },
   });
 
@@ -232,6 +237,30 @@ export default function OrderDetailScreen() {
               {formatCurrencyIdr(String(remaining))}
             </Text>
           </View>
+
+          <Text style={styles.section}>Riwayat pembayaran</Text>
+          {query.data.payments.length === 0 ? (
+            <Text style={[textVariants.bodyMuted, styles.payHistoryEmpty]}>
+              Belum ada pembayaran tercatat.
+            </Text>
+          ) : (
+            query.data.payments.map((p) => (
+              <View key={p.id} style={styles.payHistoryRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[textVariants.body, styles.payHistoryDate]}>
+                    {formatDateTimeShort(p.paidAt)}
+                  </Text>
+                  <Text style={[textVariants.caption, styles.payHistoryMethod]}>
+                    {p.method}
+                    {p.note ? ` · ${p.note}` : ''}
+                  </Text>
+                </View>
+                <Text style={styles.payHistoryAmount}>
+                  {formatCurrencyIdr(p.amount)}
+                </Text>
+              </View>
+            ))
+          )}
 
           {query.data.paymentStatus !== 'paid' ? (
             <>
@@ -366,6 +395,17 @@ const styles = StyleSheet.create({
   },
   totalVal: { fontSize: theme.font.lg, fontWeight: theme.fontWeight.bold, color: theme.color.text },
   payRow: { flexDirection: 'row', marginTop: theme.space.xs },
+  payHistoryEmpty: { marginBottom: theme.space.sm },
+  payHistoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: theme.space.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.color.border,
+  },
+  payHistoryDate: { fontWeight: theme.fontWeight.medium },
+  payHistoryMethod: { marginTop: 2, color: theme.color.textMuted, textTransform: 'capitalize' },
+  payHistoryAmount: { fontWeight: theme.fontWeight.semibold, color: theme.color.primaryDark },
   methodRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: theme.space.sm },
   methodChip: {
     paddingHorizontal: theme.space.sm,
