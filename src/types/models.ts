@@ -129,6 +129,7 @@ export type OrderDetail = {
   completedDate?: string | null;
   pickupDate?: string | null;
   image?: string | null;
+  images?: string[];
   note?: string | null;
   createdAt: string;
   updatedAt: string;

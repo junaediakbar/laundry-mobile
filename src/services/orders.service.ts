@@ -35,7 +35,9 @@ export type CreateOrderLine = {
 export type CreateOrderBody = {
   customerId: string;
   receivedDate?: string | null;
+  receivedTime?: string | null;
   completedDate?: string | null;
+  completedTime?: string | null;
   note?: string | null;
   items: CreateOrderLine[];
 };
@@ -59,23 +61,28 @@ export function createOrder(body: CreateOrderBody) {
   });
 }
 
-export type CreateOrderMultipartPayload = CreateOrderBody & {
-  /** Local file URI from image picker (expo) */
-  imageUri?: string | null;
-  imageName?: string | null;
+export type OrderImageAsset = {
+  uri: string;
   mimeType?: string | null;
+  name?: string | null;
+};
+
+export type CreateOrderMultipartPayload = CreateOrderBody & {
+  /** Up to 3 local image URIs from image picker (expo) */
+  imageAssets?: OrderImageAsset[] | null;
 };
 
 /**
- * Same as web `createOrderAction` with multipart: fields + image optional.
+ * Same as web `createOrderAction` with multipart: fields + up to 3 images optional.
  * Backend accepts multipart with form fields + `items` JSON string.
  */
 export async function createOrderWithOptionalImage(
   payload: CreateOrderMultipartPayload,
 ): Promise<OrderDetail> {
-  const { imageUri, imageName, mimeType, ...rest } = payload;
+  const { imageAssets, ...rest } = payload;
+  const assets = (imageAssets ?? []).filter((a) => a.uri?.length).slice(0, 3);
 
-  if (!imageUri) {
+  if (assets.length === 0) {
     return createOrder(rest);
   }
 
@@ -96,11 +103,16 @@ export async function createOrderWithOptionalImage(
     ),
   );
 
-  // React Native: file object with uri (not Blob)
-  form.append(
-    'image',
-    { uri: imageUri, name: imageName ?? 'nota.jpg', type: mimeType ?? 'image/jpeg' } as unknown as Blob,
-  );
+  assets.forEach((a, i) => {
+    form.append(
+      'images',
+      {
+        uri: a.uri,
+        name: a.name ?? `nota_${i + 1}.jpg`,
+        type: a.mimeType ?? 'image/jpeg',
+      } as unknown as Blob,
+    );
+  });
 
   return apiPostMultipart<OrderDetail>('/api/v1/orders', form);
 }

@@ -60,7 +60,7 @@ export default function MenuTabScreen() {
       <AppHeader title="Menu" subtitle="Pintasan seperti di aplikasi web" />
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={[textVariants.bodyMuted, styles.intro]}>
-          Pilih modul untuk membuka daftar. Alur bisnis mengikuti panel web (Laundry Records).
+          Pilih modul untuk membuka daftar. Alur bisnis mengikuti panel web (Trees Laundry).
         </Text>
         {tiles.map((tile) => {
           const I = tile.Icon;

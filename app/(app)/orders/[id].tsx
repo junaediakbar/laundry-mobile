@@ -28,7 +28,7 @@ import {
 import { ApiClientError } from '@/types/api';
 import { theme, textVariants } from '@/theme';
 import { formatCurrencyIdr, sumMoney } from '@/utils/currency';
-import { formatDateShort, formatDateTimeShort } from '@/utils/format-date';
+import { formatDateTimeShort } from '@/utils/format-date';
 import { workflowLabel } from '@/utils/order-status';
 
 const WORKFLOWS = [
@@ -179,7 +179,7 @@ export default function OrderDetailScreen() {
               </Text>
             ) : null}
             <Text style={[textVariants.caption, styles.meta]}>
-              Terima: {formatDateShort(query.data.receivedDate)}
+              Terima: {formatDateTimeShort(query.data.receivedDate)}
             </Text>
           </View>
 

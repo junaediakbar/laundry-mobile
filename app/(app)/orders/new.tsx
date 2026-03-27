@@ -8,6 +8,7 @@ import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import {
   Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -39,7 +40,7 @@ import { fetchServiceTypes } from '@/services/service-types.service';
 import type { Customer, ServiceType } from '@/types/models';
 import { ApiClientError } from '@/types/api';
 import { theme, textVariants } from '@/theme';
-import { formatDateId, formatYmd } from '@/utils/date';
+import { formatDateTimeId, formatLocalDateTime } from '@/utils/date';
 import { formatCurrencyIdr } from '@/utils/currency';
 import {
   applyLengthM1,
@@ -84,8 +85,9 @@ export default function CreateOrderScreen() {
   const [compDate, setCompDate] = useState<Date | null>(null);
   const [dateTarget, setDateTarget] = useState<null | 'received' | 'completed'>(null);
 
-  const [imageUri, setImageUri] = useState<string | null>(null);
-  const [imageMime, setImageMime] = useState<string | null>(null);
+  const [imageAssets, setImageAssets] = useState<
+    Array<{ uri: string; mimeType: string }>
+  >([]);
 
   const defaultCustomerApplied = useRef(false);
 
@@ -165,9 +167,11 @@ export default function CreateOrderScreen() {
     setPickerIndex(null);
   };
 
-  const applyPickedAsset = (a: ImagePicker.ImagePickerAsset) => {
-    setImageUri(a.uri);
-    setImageMime(a.mimeType ?? 'image/jpeg');
+  const addImageAsset = (a: ImagePicker.ImagePickerAsset) => {
+    setImageAssets((prev) => {
+      if (prev.length >= 3) return prev;
+      return [...prev, { uri: a.uri, mimeType: a.mimeType ?? 'image/jpeg' }];
+    });
   };
 
   const pickImageFromLibrary = async () => {
@@ -181,7 +185,7 @@ export default function CreateOrderScreen() {
       quality: 0.85,
     });
     if (res.canceled || !res.assets[0]) return;
-    applyPickedAsset(res.assets[0]);
+    addImageAsset(res.assets[0]);
   };
 
   const pickImageFromCamera = async () => {
@@ -195,7 +199,7 @@ export default function CreateOrderScreen() {
       quality: 0.85,
     });
     if (res.canceled || !res.assets[0]) return;
-    applyPickedAsset(res.assets[0]);
+    addImageAsset(res.assets[0]);
   };
 
   const onSubmit = handleSubmit(async (values) => {
@@ -208,8 +212,8 @@ export default function CreateOrderScreen() {
     try {
       const created = await createOrderWithOptionalImage({
         customerId: values.customerId,
-        receivedDate: formatYmd(recvDate),
-        completedDate: compDate ? formatYmd(compDate) : null,
+        receivedDate: formatLocalDateTime(recvDate),
+        completedDate: compDate ? formatLocalDateTime(compDate) : null,
         note: values.note || null,
         items: values.items.map((line) => ({
           serviceTypeId: line.serviceTypeId,
@@ -217,9 +221,7 @@ export default function CreateOrderScreen() {
           unitPrice: line.unitPrice,
           discount: line.discount,
         })),
-        imageUri: imageUri ?? undefined,
-        mimeType: imageMime ?? undefined,
-        imageName: 'nota.jpg',
+        imageAssets: imageAssets.length > 0 ? imageAssets : undefined,
       });
       router.replace(`/(app)/orders/${created.id}`);
     } catch (e) {
@@ -285,13 +287,13 @@ export default function CreateOrderScreen() {
             </>
           )}
 
-          <Text style={styles.section}>Tanggal</Text>
+          <Text style={styles.section}>Tanggal & jam</Text>
           <View style={styles.dateRow}>
             <Pressable style={styles.dateBtn} onPress={() => setDateTarget('received')}>
               <IconCalendar size={18} color={theme.color.primary} strokeWidth={1.75} />
               <View>
                 <Text style={styles.dateLabel}>Tanggal masuk</Text>
-                <Text style={styles.dateVal}>{formatDateId(recvDate)}</Text>
+                <Text style={styles.dateVal}>{formatDateTimeId(recvDate)}</Text>
               </View>
             </Pressable>
             <Pressable style={styles.dateBtn} onPress={() => setDateTarget('completed')}>
@@ -299,7 +301,7 @@ export default function CreateOrderScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.dateLabel}>Tanggal selesai (opsional)</Text>
                 <Text style={styles.dateVal}>
-                  {compDate ? formatDateId(compDate) : '—'}
+                  {compDate ? formatDateTimeId(compDate) : '—'}
                 </Text>
               </View>
               {compDate ? (
@@ -313,7 +315,7 @@ export default function CreateOrderScreen() {
           {dateTarget && Platform.OS === 'android' ? (
             <DateTimePicker
               value={dateTarget === 'received' ? recvDate : compDate ?? new Date()}
-              mode="date"
+              mode="datetime"
               display="default"
               onChange={onDateChange}
             />
@@ -330,7 +332,7 @@ export default function CreateOrderScreen() {
                 <View style={styles.modalSheet}>
                   <DateTimePicker
                     value={dateTarget === 'received' ? recvDate : compDate ?? new Date()}
-                    mode="date"
+                    mode="datetime"
                     display="spinner"
                     onChange={(_, d) => {
                       if (d) {
@@ -558,35 +560,51 @@ export default function CreateOrderScreen() {
 
           <Text style={styles.section}>Gambar nota (opsional)</Text>
           <Text style={[textVariants.caption, styles.imageHint]}>
-            Ambil foto dengan kamera atau pilih dari galeri.
+            Maksimal 3 foto. Tiap tap kamera atau galeri menambah satu foto.
           </Text>
           <View style={styles.imageRow}>
             <Pressable
-              style={styles.imageBtnHalf}
-              onPress={pickImageFromCamera}
+              style={[styles.imageBtnHalf, imageAssets.length >= 3 && styles.imageBtnDisabled]}
+              onPress={() => {
+                if (imageAssets.length >= 3) return;
+                void pickImageFromCamera();
+              }}
               accessibilityRole="button"
               accessibilityLabel="Buka kamera">
               <IconCamera size={22} color={theme.color.primary} strokeWidth={1.75} />
               <Text style={styles.imageBtnText} numberOfLines={2}>
-                {imageUri ? 'Foto ulang' : 'Kamera'}
+                Kamera
               </Text>
             </Pressable>
             <Pressable
-              style={styles.imageBtnHalf}
-              onPress={pickImageFromLibrary}
+              style={[styles.imageBtnHalf, imageAssets.length >= 3 && styles.imageBtnDisabled]}
+              onPress={() => {
+                if (imageAssets.length >= 3) return;
+                void pickImageFromLibrary();
+              }}
               accessibilityRole="button"
               accessibilityLabel="Pilih dari galeri">
               <IconPhoto size={22} color={theme.color.primary} strokeWidth={1.75} />
               <Text style={styles.imageBtnText} numberOfLines={2}>
-                {imageUri ? 'Ganti dari galeri' : 'Galeri'}
+                Galeri
               </Text>
             </Pressable>
           </View>
-          {imageUri ? (
-            <Pressable onPress={() => { setImageUri(null); setImageMime(null); }}>
-              <Text style={styles.clearImg}>Hapus gambar</Text>
-            </Pressable>
-          ) : null}
+          <Text style={[textVariants.caption, styles.imageCount]}>
+            {imageAssets.length}/3 foto
+          </Text>
+          {imageAssets.map((img, idx) => (
+            <View key={`${img.uri}-${idx}`} style={styles.imagePreviewRow}>
+              <Image source={{ uri: img.uri }} style={styles.imageThumb} />
+              <Pressable
+                onPress={() =>
+                  setImageAssets((p) => p.filter((_, i) => i !== idx))
+                }
+                hitSlop={8}>
+                <Text style={styles.clearImg}>Hapus</Text>
+              </Pressable>
+            </View>
+          ))}
 
           <FormField label="Catatan" error={errors.note?.message}>
             <Controller
@@ -777,7 +795,21 @@ const styles = StyleSheet.create({
     fontWeight: theme.fontWeight.medium,
     textAlign: 'center',
   },
-  clearImg: { marginTop: theme.space.xs, color: theme.color.error, fontSize: theme.font.sm },
+  imageBtnDisabled: { opacity: 0.45 },
+  imageCount: { marginBottom: theme.space.sm },
+  imagePreviewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.space.md,
+    marginBottom: theme.space.sm,
+  },
+  imageThumb: {
+    width: 72,
+    height: 72,
+    borderRadius: theme.radius.sm,
+    backgroundColor: theme.color.secondaryMuted,
+  },
+  clearImg: { color: theme.color.error, fontSize: theme.font.sm },
   textArea: { minHeight: 88, textAlignVertical: 'top' },
   actions: { gap: theme.space.sm, marginTop: theme.space.md, marginBottom: theme.space.xl },
   modalOverlay: {
